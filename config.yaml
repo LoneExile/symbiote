@@ -1,0 +1,27 @@
+PROJECT: SYMBIOTE
+
+GLOBAL:
+  AWS:
+    AWS_PROFILE: void
+    REGION: ap-southeast-1
+    INSTANCE_TAG_NAME: bastion
+
+AWS_PROFILES:
+  - NAME: profile1
+    REGION: ap-southeast-1
+    PEM_KEY_PATH: path/to/pem/key
+    PORT: 7021
+  - NAME: profile2
+    REGION: ap-southeast-1
+    PEM_KEY_PATH: path/to/pem/key
+    PORT: 7022
+
+SERVER:
+  HOST: 192.168.1.123
+  PORT: 22
+  USER: ubuntu
+  PASS: password
+  PATH: .
+  SFTP:
+    GREP_PATTERN: '.*'
+
