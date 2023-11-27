@@ -27,7 +27,7 @@ func InitSFTP() (*SFTPClient, error) {
 	pass := viper.GetString("SERVER.PASS")
 	host := viper.GetString("SERVER.HOST")
 
-	port := viper.GetInt("SERVER.PORT")
+	port := viper.GetInt("SERVER.SERVER_PORT")
 
 	var auths []ssh.AuthMethod
 

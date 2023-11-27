@@ -1,3 +1,4 @@
+.PHONY: build clean
 
 build:
 	env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o symbiote main.go
@@ -9,3 +10,7 @@ build:
 	# echo "source ~/.config/symbiote/symbiote.zsh" >> ~/.zshrc
 	# ~/go/bin/symbiote completion bash > ~/.config/symbiote/symbiote.bash
 	# echo "source ~/.config/symbiote/symbiote.bash" >> ~/.bashrc
+
+clean:
+	rm -rf ~/go/bin/symbiote
+	rm -rf ~/.config/symbiote

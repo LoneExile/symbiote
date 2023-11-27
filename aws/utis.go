@@ -58,7 +58,7 @@ type AWSProfile struct {
 	Name       string `mapstructure:"NAME"`
 	Region     string `mapstructure:"REGION"`
 	PemKeyPath string `mapstructure:"PEM_KEY_PATH"`
-	Port       string `mapstructure:"PORT"`
+	Port       string `mapstructure:"SERVER_PORT"`
 	// Endpoint_ID string `mapstructure:"ENDPOINT_ID"`
 }
 

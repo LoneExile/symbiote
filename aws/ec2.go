@@ -7,8 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/viper"
 )
 
@@ -22,6 +24,7 @@ type Ec2InstanceInfo struct {
 
 type AWSClients struct {
 	EC2 *ec2.Client
+	RDS *rds.Client
 }
 
 // TODO: add default, check config file => ENV => ~/.aws/config
@@ -31,7 +34,7 @@ var (
 	Profile string
 )
 
-func NewAWSClients() (*AWSClients, error) {
+func cfg() aws.Config {
 	if Profile == "" {
 		Profile = GetProfile()
 	}
@@ -53,9 +56,14 @@ func NewAWSClients() (*AWSClients, error) {
 		optFns...,
 	)
 	if err != nil {
-		return nil, err
+		log.Fatalf("failed to load configuration, %v", err)
 	}
 
+	return cfg
+}
+
+func NewEC2Client() (*AWSClients, error) {
+	cfg := cfg()
 	ec2Client := ec2.NewFromConfig(cfg)
 
 	return &AWSClients{
