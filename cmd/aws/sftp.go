@@ -12,7 +12,7 @@ var sftp = &cobra.Command{
 	Use:   "sftp",
 	Short: "SFTP to an instance",
 	Run: func(cmd *cobra.Command, args []string) {
-		f.SFTP()
+		f.SFTP(server)
 	},
 }
 

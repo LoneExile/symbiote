@@ -4,10 +4,12 @@ go 1.21.3
 
 require (
 	github.com/atotto/clipboard v0.1.4
+	github.com/aws/aws-sdk-go v1.48.5
 	github.com/aws/aws-sdk-go-v2 v1.23.1
 	github.com/aws/aws-sdk-go-v2/config v1.25.5
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.137.1
 	github.com/aws/aws-sdk-go-v2/service/rds v1.63.2
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.43.1
 	github.com/charmbracelet/bubbles v0.16.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.9.1

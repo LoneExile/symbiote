@@ -7,10 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/viper"
 )
 
@@ -20,46 +17,6 @@ type Ec2InstanceInfo struct {
 	Status       string
 	PrivateIP    string
 	State        string
-}
-
-type AWSClients struct {
-	EC2 *ec2.Client
-	RDS *rds.Client
-}
-
-// TODO: add default, check config file => ENV => ~/.aws/config
-// - check if region is valid
-var (
-	Region  string
-	Profile string
-)
-
-func cfg() aws.Config {
-	if Profile == "" {
-		Profile = GetProfile()
-	}
-	if Region == "" {
-		Region = GetRegion()
-	}
-
-	optFns := []func(*config.LoadOptions) error{
-		config.WithSharedConfigProfile(Profile),
-	}
-
-	fmt.Println("Profile:", Profile)
-	if Region != "" {
-		fmt.Println("Region:", Region)
-		optFns = append(optFns, config.WithRegion(Region))
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		optFns...,
-	)
-	if err != nil {
-		log.Fatalf("failed to load configuration, %v", err)
-	}
-
-	return cfg
 }
 
 func NewEC2Client() (*AWSClients, error) {

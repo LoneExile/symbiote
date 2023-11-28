@@ -12,9 +12,7 @@ import (
 	"github.com/creack/pty"
 )
 
-var server bool
-
-func SFTP() {
+func SFTP(server bool) {
 	c, err := svc.NewEC2Client()
 	if err != nil {
 		fmt.Println(err)
