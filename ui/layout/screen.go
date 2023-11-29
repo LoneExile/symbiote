@@ -3,29 +3,28 @@ package layout
 import (
 	"fmt"
 	"os"
-	"os/exec"
-
-	f "symbiote/cmd/aws/fn"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type cmdFinishedMsg struct{ err error }
-
-// menuItem represents an item in a menu. It can be a command or lead to a submenu.
 type menuItem struct {
 	Name    string
-	Command func() *exec.Cmd
+	Command func() tea.Cmd
+	SubCmd  func() tea.Cmd
 	SubMenu []menuItem
 }
 
-// model represents the application state.
 type model struct {
 	menus    []menuItem
 	cursor   int
-	menuPath []int // Stack to keep track of menu navigation
+	menuPath []int
 	err      error
 }
+
+// type commandStartedMsg struct{}
+type FoundSubCmd struct{}
+type commandCompletedMsg struct{ err error }
+type commandFailedMsg struct{ err error }
 
 // Initial model setup with menu items.
 func initialModel() model {
@@ -34,29 +33,10 @@ func initialModel() model {
 			{
 				Name: "AWS",
 				SubMenu: []menuItem{
-					{Name: "Connect", Command: f.ConnectCmd},
-					// {Name: "Connect", Command: a.ConnectToInstance},
-					// {Name: "SFTP", Command: a.SFTP},
-					// {Name: "List Instances", Command: a.ListInstances},
+					{Name: "Connect", Command: ConnectCmd, SubCmd: nil},
+					{Name: "SFTP", Command: EicSFTPCmd, SubCmd: SFTPConnectCmd},
 				},
 			},
-			// {
-			// 	Name: "Local",
-			// 	SubMenu: []menuItem{
-			// 		{Name: "SSH", Command: test},
-			// 		{Name: "SFTP", Command: test},
-			// 		{
-			// 			Name: "TEST",
-			// 			SubMenu: []menuItem{
-			// 				{Name: "TEST", Command: test},
-			// 			},
-			// 		},
-			// 	},
-			// },
-			// {
-			// 	Name:    "Help",
-			// 	Command: test,
-			// },
 		},
 		menuPath: make([]int, 0),
 	}
@@ -88,17 +68,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			selectedItem := currentMenu[m.cursor]
 
 			if len(selectedItem.SubMenu) > 0 {
-				// Navigate into submenu
 				m.menuPath = append(m.menuPath, m.cursor)
 				m.cursor = 0
 			} else if selectedItem.Command != nil {
-				// Execute command
-				// return m, runCmd(selectedItem.Command)
 				if selectedItem.Name == "Help" {
-					// Special handling for the Help command
-					return m, openHelp() // Implement openHelp() to show help
+					return m, openHelp()
 				} else {
-					return m, runCmd(selectedItem.Command)
+					return m, selectedItem.Command()
 				}
 			}
 		case "backspace":
@@ -108,14 +84,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor = 0
 			}
 		}
+	}
 
-		// Handle other message types if necessary
-
+	switch msg := msg.(type) {
+	case FoundSubCmd:
+		currentMenu := m.getCurrentMenu()
+		selectedItem := currentMenu[m.cursor]
+		if selectedItem.SubCmd != nil {
+			return m, selectedItem.SubCmd()
+		}
+	case commandCompletedMsg:
+		if msg.err != nil {
+			fmt.Println("Command completed with error:", msg.err)
+		} else {
+			fmt.Println("Command completed successfully")
+		}
+	case commandFailedMsg:
+		if msg.err != nil {
+			fmt.Println("Command failed with error:", msg.err)
+		} else {
+			fmt.Println("Command failed")
+		}
 	}
 	return m, nil
 }
 
-// View renders the UI, which is shown in the terminal.
 func (m model) View() string {
 	s := "\n\n"
 	currentMenu := m.getCurrentMenu()
@@ -140,28 +133,8 @@ func (m *model) getCurrentMenu() []menuItem {
 	return menu
 }
 
-// runCmd is a placeholder for executing commands.
-func runCmd(command func() *exec.Cmd) tea.Cmd {
-	c := command()
-	return tea.ExecProcess(c, func(err error) tea.Msg {
-		return cmdFinishedMsg{err}
-	})
-	// return nil
-}
-
-// func runCmd2(command func()) tea.Cmd {
-// 	command()
-// 	return nil
-// }
-
-func test() {
-
-}
-
-// openHelp is a placeholder for opening a help screen.
 func openHelp() tea.Cmd {
 	// fmt.Println("Showing help")
-	// In real application, implement logic to show help screen
 	return nil
 }
 

@@ -17,12 +17,18 @@ func RDSTunnel(port string) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	if len(r.ListDBInstances()) == 0 {
+		fmt.Println("No RDS instances found.")
+		return
+	} else if len(r.ListDBInstances()) > 1 {
+		fmt.Println("More than one RDS instance found.")
+		return
+	}
 
 	e, err := svc.NewEC2Client()
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	instance := e.DefaultInstance()
 	dbEndpoint := r.ListDBInstances()[0].PrivateIP
 	p := strings.Split(port, ":")

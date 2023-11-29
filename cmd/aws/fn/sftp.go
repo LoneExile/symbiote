@@ -12,16 +12,16 @@ import (
 	"github.com/creack/pty"
 )
 
-func SFTP(server bool) {
+func EicSFTPCmd() *exec.Cmd {
 	c, err := svc.NewEC2Client()
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	instance := c.DefaultInstance()
 	eiceID := c.DefaultEndpoint()
-	fmt.Println("Private IP:", instance.PrivateIP)
 	profileConfig := svc.GetProfileConfig()
+	// fmt.Println("Private IP:", instance.PrivateIP)
+	// fmt.Println("Port:", profileConfig.Port)
 
 	tunnelCmd := exec.Command(
 		"aws", "ec2-instance-connect", "open-tunnel",
@@ -31,7 +31,23 @@ func SFTP(server bool) {
 		"--remote-port", "22",
 		"--profile", profileConfig.Name,
 	)
+	return tunnelCmd
+}
 
+func SFTPConnectCmd() *exec.Cmd {
+	profileConfig := svc.GetProfileConfig()
+	sftpCmd := exec.Command(
+		"sftp",
+		"-P", profileConfig.Port,
+		"-i", profileConfig.PemKeyPath,
+		"ec2-user@localhost",
+	)
+	return sftpCmd
+}
+
+func SFTP(server bool) {
+	// profileConfig := svc.GetProfileConfig()
+	tunnelCmd := EicSFTPCmd()
 	ptmx, err := pty.Start(tunnelCmd)
 	if err != nil {
 		fmt.Printf("Error starting command with pty: %v\n", err)
@@ -51,7 +67,7 @@ func SFTP(server bool) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "Listening") {
-			fmt.Printf("Listening for connections on port %s.\n", profileConfig.Port)
+			// fmt.Printf("Listening for connections on port %s.\n", profileConfig.Port)
 			found = true
 			break
 		}
@@ -67,12 +83,7 @@ func SFTP(server bool) {
 
 	if !server {
 		fmt.Println("------------------")
-		sftpCmd := exec.Command(
-			"sftp",
-			"-P", profileConfig.Port,
-			"-i", profileConfig.PemKeyPath,
-			"ec2-user@localhost",
-		)
+		sftpCmd := SFTPConnectCmd()
 
 		sftpCmd.Stdin = os.Stdin
 		sftpCmd.Stdout = os.Stdout
