@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/go-ini/ini"
+
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/spf13/viper"
 )
@@ -85,4 +88,20 @@ func GetProfileConfig() AWSProfile {
 	}
 
 	return profileConfig
+}
+
+func GetAWSProfiles() ([]string, error) {
+	var profiles []string
+
+	credsFilePath := config.DefaultSharedCredentialsFilename()
+
+	credsFile, err := ini.Load(credsFilePath)
+	if err != nil {
+		return nil, err
+	}
+	for _, section := range credsFile.Sections() {
+		profiles = append(profiles, section.Name())
+	}
+
+	return profiles, nil
 }
