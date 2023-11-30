@@ -9,16 +9,27 @@ import (
 
 type menuItem struct {
 	Name    string
-	Command func() tea.Cmd
-	SubCmd  func() tea.Cmd
+	Command []Cmd
 	SubMenu []menuItem
 }
 
+type Cmd struct {
+	Cmd     func(model) tea.Cmd
+	Type    string
+	Wording string
+}
+
+type currentCmd struct {
+	stage   int
+	Wording string
+	Type    string
+}
+
 type model struct {
-	menus    []menuItem
-	cursor   int
-	menuPath []int
-	err      error
+	Menus      []menuItem
+	Cursor     int
+	MenuPath   []int
+	CurrentCmd currentCmd
 }
 
 // type commandStartedMsg struct{}
@@ -29,16 +40,42 @@ type commandFailedMsg struct{ err error }
 // Initial model setup with menu items.
 func initialModel() model {
 	return model{
-		menus: []menuItem{
+		Menus: []menuItem{
 			{
 				Name: "AWS",
 				SubMenu: []menuItem{
-					{Name: "Connect", Command: ConnectCmd, SubCmd: nil},
-					{Name: "SFTP", Command: EicSFTPCmd, SubCmd: SFTPConnectCmd},
+					{Name: "Connect", Command: []Cmd{
+						{Cmd: ConnectCmd, Type: "exec"},
+					},
+					},
+					{
+						Name: "SFTP",
+						Command: []Cmd{
+							{Cmd: EicSFTPCmd, Type: "bg", Wording: "Listening"},
+							{Cmd: SFTPConnectCmd, Type: "exec"},
+						},
+					}, // ,
 				},
 			},
+			// {
+			// 	Name: "Local",
+			// 	SubMenu: []menuItem{
+			// 		{Name: "SSH", Command: test},
+			// 		{Name: "SFTP", Command: test},
+			// 		{
+			// 			Name: "TEST",
+			// 			SubMenu: []menuItem{
+			// 				{Name: "TEST", Command: test},
+			// 			},
+			// 		},
+			// 	},
+			// },
+			// {
+			// 	Name:    "Help",
+			// 	Command: test,
+			// },
 		},
-		menuPath: make([]int, 0),
+		MenuPath: make([]int, 0),
 	}
 }
 
@@ -47,7 +84,6 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
-// Update is called when a message is received.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
@@ -56,32 +92,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
+			if m.Cursor > 0 {
+				m.Cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.getCurrentMenu())-1 {
-				m.cursor++
+			if m.Cursor < len(m.getCurrentMenu())-1 {
+				m.Cursor++
 			}
 		case "enter", " ":
 			currentMenu := m.getCurrentMenu()
-			selectedItem := currentMenu[m.cursor]
+			selectedItem := currentMenu[m.Cursor]
 
 			if len(selectedItem.SubMenu) > 0 {
-				m.menuPath = append(m.menuPath, m.cursor)
-				m.cursor = 0
+				m.MenuPath = append(m.MenuPath, m.Cursor)
+				m.Cursor = 0
 			} else if selectedItem.Command != nil {
 				if selectedItem.Name == "Help" {
 					return m, openHelp()
 				} else {
-					return m, selectedItem.Command()
+					m.CurrentCmd.stage = 0
+					m.CurrentCmd.Wording = selectedItem.Command[0].Wording
+					m.CurrentCmd.Type = selectedItem.Command[0].Type
+					return m, selectedItem.Command[0].Cmd(m)
 				}
 			}
 		case "backspace":
-			if len(m.menuPath) > 0 {
+			if len(m.MenuPath) > 0 {
 				// Navigate up in the menu
-				m.menuPath = m.menuPath[:len(m.menuPath)-1]
-				m.cursor = 0
+				m.MenuPath = m.MenuPath[:len(m.MenuPath)-1]
+				// TODO: set cursor to the last selected item
+				m.Cursor = 0
 			}
 		}
 	}
@@ -89,9 +129,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case FoundSubCmd:
 		currentMenu := m.getCurrentMenu()
-		selectedItem := currentMenu[m.cursor]
-		if selectedItem.SubCmd != nil {
-			return m, selectedItem.SubCmd()
+		selectedItem := currentMenu[m.Cursor]
+		// if selectedItem.Command[1].Cmd != nil {
+		// 	return m, selectedItem.Command[1].Cmd()
+		// }
+
+		stage := m.CurrentCmd.stage
+		if stage < len(selectedItem.Command)-1 {
+			m.CurrentCmd.stage++
+			m.CurrentCmd.Wording = selectedItem.Command[stage+1].Wording
+			m.CurrentCmd.Type = selectedItem.Command[stage+1].Type
+			return m, selectedItem.Command[stage+1].Cmd(m)
 		}
 	case commandCompletedMsg:
 		if msg.err != nil {
@@ -115,7 +163,7 @@ func (m model) View() string {
 
 	for i, item := range currentMenu {
 		cursor := " "
-		if m.cursor == i {
+		if m.Cursor == i {
 			cursor = ">"
 		}
 		s += fmt.Sprintf("%s  %s\n", cursor, item.Name)
@@ -126,8 +174,8 @@ func (m model) View() string {
 
 // getCurrentMenu returns the current menu based on the navigation path.
 func (m *model) getCurrentMenu() []menuItem {
-	menu := m.menus
-	for _, idx := range m.menuPath {
+	menu := m.Menus
+	for _, idx := range m.MenuPath {
 		menu = menu[idx].SubMenu
 	}
 	return menu

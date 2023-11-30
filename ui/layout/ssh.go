@@ -6,8 +6,17 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func ConnectCmd() tea.Cmd {
-	return tea.ExecProcess(f.ConnectCmd(), func(err error) tea.Msg {
+func ConnectCmd(m model) tea.Cmd {
+	c := f.ConnectCmd()
+
+	teaCmds := tea.ExecProcess(c, func(err error) tea.Msg {
 		return commandCompletedMsg{err}
 	})
+
+	if true {
+		runEchoCmd := echoCmd(c)
+		return runCmds([]tea.Cmd{runEchoCmd, teaCmds})
+	}
+
+	return teaCmds
 }
