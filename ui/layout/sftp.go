@@ -7,7 +7,7 @@ import (
 )
 
 func EicSFTPCmd(m model) tea.Cmd {
-	tunnelCmd := f.EicSFTPCmd()
+	tunnelCmd := f.EicSFTPCmd(m.CurrentP)
 	eicCmd := runBgCmd(tunnelCmd, m.CurrentCmd.Wording)
 
 	if true {

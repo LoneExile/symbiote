@@ -17,7 +17,8 @@ func getInstances() svc.Ec2InstanceInfo {
 	return instance
 }
 
-func ConnectCmd() *exec.Cmd {
+func ConnectCmd(profile string) *exec.Cmd {
+	svc.Profile = profile
 	instanceID := getInstances().InstanceID
 	execCmd := exec.Command(
 		"aws",
@@ -36,7 +37,7 @@ func ConnectCmd() *exec.Cmd {
 }
 
 func ConnectToInstance() {
-	execCmd := ConnectCmd()
+	execCmd := ConnectCmd(svc.Profile)
 
 	execCmd.Stdin = os.Stdin
 	execCmd.Stdout = os.Stdout

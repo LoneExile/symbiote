@@ -12,7 +12,8 @@ import (
 	"github.com/creack/pty"
 )
 
-func EicSFTPCmd() *exec.Cmd {
+func EicSFTPCmd(profile string) *exec.Cmd {
+	svc.Profile = profile
 	c, err := svc.NewEC2Client()
 	if err != nil {
 		fmt.Println(err)
@@ -20,8 +21,6 @@ func EicSFTPCmd() *exec.Cmd {
 	instance := c.DefaultInstance()
 	eiceID := c.DefaultEndpoint()
 	profileConfig := svc.GetProfileConfig()
-	// fmt.Println("Private IP:", instance.PrivateIP)
-	// fmt.Println("Port:", profileConfig.Port)
 
 	tunnelCmd := exec.Command(
 		"aws", "ec2-instance-connect", "open-tunnel",
@@ -46,8 +45,7 @@ func SFTPConnectCmd() *exec.Cmd {
 }
 
 func SFTP(server bool) {
-	// profileConfig := svc.GetProfileConfig()
-	tunnelCmd := EicSFTPCmd()
+	tunnelCmd := EicSFTPCmd(svc.Profile)
 	ptmx, err := pty.Start(tunnelCmd)
 	if err != nil {
 		fmt.Printf("Error starting command with pty: %v\n", err)

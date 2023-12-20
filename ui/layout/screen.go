@@ -30,6 +30,7 @@ type model struct {
 	Cursor     int
 	MenuPath   []int
 	CurrentCmd currentCmd
+	CurrentP   string
 }
 
 // type commandStartedMsg struct{}
@@ -39,42 +40,32 @@ type commandFailedMsg struct{ err error }
 
 // Initial model setup with menu items.
 func initialModel() model {
-	return model{
-		Menus: []menuItem{
-			{
-				Name: "AWS",
-				SubMenu: []menuItem{
-					{Name: "Connect", Command: []Cmd{
-						{Cmd: ConnectCmd, Type: "exec"},
-					},
-					},
-					{
-						Name: "SFTP",
-						Command: []Cmd{
-							{Cmd: EicSFTPCmd, Type: "bg", Wording: "Listening"},
-							{Cmd: SFTPConnectCmd, Type: "exec"},
-						},
-					}, // ,
-				},
-			},
-			// {
-			// 	Name: "Local",
-			// 	SubMenu: []menuItem{
-			// 		{Name: "SSH", Command: test},
-			// 		{Name: "SFTP", Command: test},
-			// 		{
-			// 			Name: "TEST",
-			// 			SubMenu: []menuItem{
-			// 				{Name: "TEST", Command: test},
-			// 			},
-			// 		},
-			// 	},
-			// },
-			// {
-			// 	Name:    "Help",
-			// 	Command: test,
-			// },
+
+	listProfiles := ListProfile()
+	menuItemStruct := make([]menuItem, 0)
+	subMenu := []menuItem{
+		{Name: "Connect", Command: []Cmd{
+			{Cmd: ConnectCmd, Type: "exec"},
 		},
+		},
+		{
+			Name: "SFTP",
+			Command: []Cmd{
+				{Cmd: EicSFTPCmd, Type: "bg", Wording: "Listening"},
+				{Cmd: SFTPConnectCmd, Type: "exec"},
+			},
+		}, // ,
+	}
+
+	for _, val := range listProfiles {
+		menuItemStruct = append(menuItemStruct, menuItem{
+			Name:    val,
+			SubMenu: subMenu,
+		},
+		)
+	}
+	return model{
+		Menus:    menuItemStruct,
 		MenuPath: make([]int, 0),
 	}
 }
@@ -102,6 +93,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter", " ":
 			currentMenu := m.getCurrentMenu()
 			selectedItem := currentMenu[m.Cursor]
+			if m.CurrentP == "" {
+				m.CurrentP = selectedItem.Name
+			}
 
 			if len(selectedItem.SubMenu) > 0 {
 				m.MenuPath = append(m.MenuPath, m.Cursor)

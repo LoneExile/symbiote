@@ -7,7 +7,7 @@ import (
 )
 
 func ConnectCmd(m model) tea.Cmd {
-	c := f.ConnectCmd()
+	c := f.ConnectCmd(m.CurrentP)
 
 	teaCmds := tea.ExecProcess(c, func(err error) tea.Msg {
 		return commandCompletedMsg{err}
