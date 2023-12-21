@@ -6,6 +6,7 @@ build:
 	mv symbiote ~/go/bin/symbiote
 	mkdir -p ~/.config/symbiote
 	cp config.yaml ~/.config/symbiote/config.yaml
+	rm ~/.config/symbiote/symbiote.zsh
 	~/go/bin/symbiote completion zsh > ~/.config/symbiote/symbiote.zsh
 	# echo "source ~/.config/symbiote/symbiote.zsh" >> ~/.zshrc
 	# ~/go/bin/symbiote completion bash > ~/.config/symbiote/symbiote.bash

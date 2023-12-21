@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"symbiote/ui/layout/style"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -26,11 +28,13 @@ type currentCmd struct {
 }
 
 type model struct {
-	Menus      []menuItem
-	Cursor     int
-	MenuPath   []int
-	CurrentCmd currentCmd
-	CurrentP   string
+	Menus        []menuItem
+	Cursor       int
+	MenuPath     []int
+	CurrentCmd   currentCmd
+	CurrentP     string
+	TextForm     style.Model
+	showTextForm bool
 }
 
 // type commandStartedMsg struct{}
@@ -44,7 +48,7 @@ func initialModel() model {
 	listProfiles := ListProfile()
 	menuItemStruct := make([]menuItem, 0)
 	subMenu := []menuItem{
-		{Name: "Connect", Command: []Cmd{
+		{Name: "SSH", Command: []Cmd{
 			{Cmd: ConnectCmd, Type: "exec"},
 		},
 		},
@@ -55,6 +59,10 @@ func initialModel() model {
 				{Cmd: SFTPConnectCmd, Type: "exec"},
 			},
 		}, // ,
+		{Name: "DB", Command: []Cmd{
+			{Cmd: ForwardDB, Type: "exec"},
+		},
+		},
 	}
 
 	for _, val := range listProfiles {
@@ -65,8 +73,10 @@ func initialModel() model {
 		)
 	}
 	return model{
-		Menus:    menuItemStruct,
-		MenuPath: make([]int, 0),
+		Menus:        menuItemStruct,
+		MenuPath:     make([]int, 0),
+		TextForm:     style.InitialModel(),
+		showTextForm: false,
 	}
 }
 
@@ -76,6 +86,22 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.showTextForm {
+		var cmd tea.Cmd
+		IsSubmitted, _ := m.TextForm.Update(msg)
+		m.TextForm, _ = IsSubmitted.(style.Model)
+		if m.TextForm.IsSubmitted {
+			m.showTextForm = false
+			currentMenu := m.getCurrentMenu()
+			selectedItem := currentMenu[m.Cursor]
+			m.CurrentCmd.stage = 0
+			m.CurrentCmd.Wording = selectedItem.Command[0].Wording
+			m.CurrentCmd.Type = selectedItem.Command[0].Type
+			return m, selectedItem.Command[0].Cmd(m)
+		}
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
@@ -96,6 +122,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.CurrentP == "" {
 				m.CurrentP = selectedItem.Name
 			}
+			if selectedItem.Name == "DB" {
+				m.showTextForm = true
+				return m, nil
+			}
 
 			if len(selectedItem.SubMenu) > 0 {
 				m.MenuPath = append(m.MenuPath, m.Cursor)
@@ -110,6 +140,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, selectedItem.Command[0].Cmd(m)
 				}
 			}
+
 		case "backspace":
 			if len(m.MenuPath) > 0 {
 				// Navigate up in the menu
@@ -152,6 +183,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+	if m.showTextForm {
+		return m.TextForm.View()
+	}
 	s := "\n\n"
 	currentMenu := m.getCurrentMenu()
 

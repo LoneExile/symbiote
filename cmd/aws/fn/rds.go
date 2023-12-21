@@ -12,33 +12,29 @@ import (
 	"github.com/creack/pty"
 )
 
-func RDSTunnel(port string) {
+func RdsCmd(port string, profile string) *exec.Cmd {
+	svc.Profile = profile
 	r, err := svc.NewRDSClient()
 	if err != nil {
 		fmt.Println(err)
 	}
 	if len(r.ListDBInstances()) == 0 {
 		fmt.Println("No RDS instances found.")
-		return
+		return nil
 	} else if len(r.ListDBInstances()) > 1 {
 		fmt.Println("More than one RDS instance found.")
-		return
+		return nil
 	}
-
 	e, err := svc.NewEC2Client()
 	if err != nil {
 		fmt.Println(err)
 	}
 	instance := e.DefaultInstance()
+
 	dbEndpoint := r.ListDBInstances()[0].PrivateIP
 	p := strings.Split(port, ":")
 	localPortNumber := p[0]
 	portNumber := p[1]
-
-	fmt.Println("DB Endpoint:", dbEndpoint)
-	fmt.Println("Instance ID:", instance.InstanceID)
-	fmt.Println("Instance Name:", instance.InstanceName)
-	fmt.Println("Port (local:remote):", port)
 
 	params := fmt.Sprintf(
 		"{\"portNumber\":[\"%s\"],\"localPortNumber\":[\"%s\"],\"host\":[\"%s\"]}",
@@ -46,6 +42,12 @@ func RDSTunnel(port string) {
 		localPortNumber,
 		dbEndpoint,
 	)
+
+	fmt.Println("DB Endpoint:", dbEndpoint)
+	fmt.Println("Instance ID:", instance.InstanceID)
+	fmt.Println("Instance Name:", instance.InstanceName)
+	fmt.Println("Port (local:remote):", port)
+
 	ssmCmd := exec.Command(
 		"aws", "ssm", "start-session",
 		"--target", instance.InstanceID,
@@ -53,6 +55,15 @@ func RDSTunnel(port string) {
 		"--parameters", params,
 		"--profile", svc.Profile,
 	)
+	return ssmCmd
+}
+
+func RDSTunnel(port string, profile string) {
+
+	ssmCmd := RdsCmd(port, profile)
+	if ssmCmd == nil {
+		return
+	}
 
 	ptmx, err := pty.Start(ssmCmd)
 	if err != nil {
@@ -72,18 +83,18 @@ func RDSTunnel(port string) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "Waiting") {
-			fmt.Printf("Waiting for connections on port %s.\n", portNumber)
+			fmt.Printf("Waiting for connections on port %s.\n", port)
 			found = true
 			break
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("Failed to start session on port %s.\n", portNumber)
+		fmt.Printf("Failed to start session on port %s.\n", port)
 	}
 
 	if !found {
-		fmt.Printf("Failed to start session on port %s.\n", portNumber)
+		fmt.Printf("Failed to start session on port %s.\n", port)
 	}
 
 	if err := ssmCmd.Wait(); err != nil {

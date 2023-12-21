@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	svc "symbiote/aws"
 	f "symbiote/cmd/aws/fn"
 
 	"github.com/spf13/cobra"
@@ -12,7 +13,7 @@ var db = &cobra.Command{
 	Use:   "rds",
 	Short: "List instances",
 	Run: func(cmd *cobra.Command, args []string) {
-		f.RDSTunnel(port)
+		f.RDSTunnel(port, svc.Profile)
 	},
 }
 
