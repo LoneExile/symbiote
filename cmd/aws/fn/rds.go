@@ -12,12 +12,72 @@ import (
 	"github.com/creack/pty"
 )
 
+func ListDBInstances(profile string) []string {
+	svc.Profile = profile
+	r, err := svc.NewRDSClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	list := make([]string, 0)
+	for _, i := range r.ListDBInstances() {
+		list = append(list, i.InstanceID)
+	}
+	return list
+}
+
+func RdsCmdSelected(port string, profile string, selectedDB string) *exec.Cmd {
+	svc.Profile = profile
+	r, err := svc.NewRDSClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	allInstances := r.ListDBInstances()
+	var dbEndpoint string
+	for _, i := range allInstances {
+		if i.InstanceID == selectedDB {
+			dbEndpoint = i.PrivateIP
+		}
+	}
+
+	e, err := svc.NewEC2Client()
+	if err != nil {
+		fmt.Println(err)
+	}
+	instance := e.DefaultInstance()
+
+	p := strings.Split(port, ":")
+	localPortNumber := p[0]
+	portNumber := p[1]
+
+	params := fmt.Sprintf(
+		"{\"portNumber\":[\"%s\"],\"localPortNumber\":[\"%s\"],\"host\":[\"%s\"]}",
+		portNumber,
+		localPortNumber,
+		dbEndpoint,
+	)
+
+	fmt.Println("DB Endpoint:", dbEndpoint)
+	fmt.Println("Instance ID:", instance.InstanceID)
+	fmt.Println("Instance Name:", instance.InstanceName)
+	fmt.Println("Port (local:remote):", port)
+
+	ssmCmd := exec.Command(
+		"aws", "ssm", "start-session",
+		"--target", instance.InstanceID,
+		"--document-name", "AWS-StartPortForwardingSessionToRemoteHost",
+		"--parameters", params,
+		"--profile", svc.Profile,
+	)
+	return ssmCmd
+}
+
 func RdsCmd(port string, profile string) *exec.Cmd {
 	svc.Profile = profile
 	r, err := svc.NewRDSClient()
 	if err != nil {
 		fmt.Println(err)
 	}
+
 	if len(r.ListDBInstances()) == 0 {
 		fmt.Println("No RDS instances found.")
 		return nil

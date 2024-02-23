@@ -8,8 +8,23 @@ import (
 )
 
 func ForwardDB(m model) tea.Cmd {
-	port := m.TextForm.Inputs[0].Value() + ":" + m.TextForm.Inputs[1].Value()
-	c := f.RdsCmd(port, m.CurrentP)
+	dbInstances := f.ListDBInstances(m.CurrentP)
+
+	if len(dbInstances) == 0 {
+		// os.Exit(1)
+		return func() tea.Msg {
+			return commandFailedMsg{err: nil}
+		}
+	}
+
+	return func() tea.Msg {
+		return startDBSelectionMsg{DBInstances: dbInstances}
+	}
+
+}
+
+func connectToDB(m model, port string) tea.Cmd {
+	c := f.RdsCmdSelected(port, m.CurrentP, m.SelectedDB)
 	if c == nil {
 		os.Exit(1)
 	}
@@ -22,6 +37,5 @@ func ForwardDB(m model) tea.Cmd {
 		runEchoCmd := echoCmd(c)
 		return runCmds([]tea.Cmd{runEchoCmd, teaCmds})
 	}
-
 	return teaCmds
 }

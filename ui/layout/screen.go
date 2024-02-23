@@ -35,12 +35,19 @@ type model struct {
 	CurrentP     string
 	TextForm     style.Model
 	showTextForm bool
+	DBInstances  []string
+	SelectingDB  bool
+	SelectedDB   string
 }
 
 // type commandStartedMsg struct{}
 type FoundSubCmd struct{}
 type commandCompletedMsg struct{ err error }
 type commandFailedMsg struct{ err error }
+
+type startDBSelectionMsg struct {
+	DBInstances []string
+}
 
 // Initial model setup with menu items.
 func initialModel() model {
@@ -77,6 +84,7 @@ func initialModel() model {
 		MenuPath:     make([]int, 0),
 		TextForm:     style.InitialModel(),
 		showTextForm: false,
+		SelectingDB:  false,
 	}
 }
 
@@ -97,6 +105,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.CurrentCmd.stage = 0
 			m.CurrentCmd.Wording = selectedItem.Command[0].Wording
 			m.CurrentCmd.Type = selectedItem.Command[0].Type
+			m.Cursor = 0
 			return m, selectedItem.Command[0].Cmd(m)
 		}
 		return m, cmd
@@ -122,6 +131,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.CurrentP == "" {
 				m.CurrentP = selectedItem.Name
 			}
+
+			if m.SelectingDB {
+				if len(m.DBInstances) > 1 {
+					m.SelectedDB = m.DBInstances[m.Cursor]
+					m.SelectingDB = false
+					return m, connectToDB(m, m.TextForm.Inputs[0].Value()+":"+m.TextForm.Inputs[1].Value())
+				}
+			}
+
 			if selectedItem.Name == "DB" {
 				m.showTextForm = true
 				return m, nil
@@ -169,14 +187,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case commandCompletedMsg:
 		if msg.err != nil {
 			fmt.Println("Command completed with error:", msg.err)
-		} else {
-			fmt.Println("Command completed successfully")
+			os.Exit(1)
 		}
 	case commandFailedMsg:
 		if msg.err != nil {
 			fmt.Println("Command failed with error:", msg.err)
 		} else {
 			fmt.Println("Command failed")
+		}
+	case startDBSelectionMsg:
+		m.DBInstances = msg.DBInstances
+		m.SelectingDB = true
+		// return m, nil
+
+		if len(m.DBInstances) == 1 {
+			m.SelectedDB = m.DBInstances[0]
+			m.SelectingDB = false
+			return m, connectToDB(m, m.TextForm.Inputs[0].Value()+":"+m.TextForm.Inputs[1].Value())
 		}
 	}
 	return m, nil
@@ -186,6 +213,23 @@ func (m model) View() string {
 	if m.showTextForm {
 		return m.TextForm.View()
 	}
+
+	if m.SelectingDB && len(m.DBInstances) > 1 {
+		s := "Select a database:\n\n"
+		for i, db := range m.DBInstances {
+			cursor := " "
+			if m.Cursor == i {
+				cursor = ">"
+			}
+			s += fmt.Sprintf("%s  %s\n", cursor, db)
+		}
+		return s + "\nUse arrow keys to navigate, enter to select."
+	}
+	// else if m.SelectingDB && len(m.DBInstances) == 1 {
+	// 	s := "Connecting to " + m.DBInstances[0] + "...\n"
+	// 	return s
+	// }
+
 	s := "\n\n"
 	currentMenu := m.getCurrentMenu()
 
