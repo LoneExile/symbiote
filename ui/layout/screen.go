@@ -49,7 +49,6 @@ type startDBSelectionMsg struct {
 	DBInstances []string
 }
 
-// Initial model setup with menu items.
 func initialModel() model {
 
 	listProfiles := ListProfile()
@@ -88,7 +87,6 @@ func initialModel() model {
 	}
 }
 
-// Init is called when the program starts.
 func (m model) Init() tea.Cmd {
 	return nil
 }
@@ -244,7 +242,6 @@ func (m model) View() string {
 	return s
 }
 
-// getCurrentMenu returns the current menu based on the navigation path.
 func (m *model) getCurrentMenu() []menuItem {
 	menu := m.Menus
 	for _, idx := range m.MenuPath {
@@ -258,7 +255,6 @@ func openHelp() tea.Cmd {
 	return nil
 }
 
-// main function to run the Bubble Tea program.
 func Screen() {
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

@@ -16,12 +16,12 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "symbiote",
-	Short: "Symbiote, Elysian swiss army knife",
+	Short: "Symbiote, Cloud Engineer swiss knife",
 	Long:  `Symbiote is a utility tool for managing and interacting with your cloud infrastructure. `,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("     ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ")
 		// fmt.Println("        Symbiote       ")
-		// fmt.Println(" Elysian swiss army knife")
+		// fmt.Println(" Cloud Engineer swiss knife")
 		// fmt.Println("     ⠀⠀⢀⠤⠒⠒⠀⠒⠂⢄⡀⠀⠀⠀⠀⠀⠀ ")
 		// fmt.Println("     ⠀⡜⢀⠀⠀⠀⠀⠀⠀⢀⡈⢆⠀⠀⠀⠀⠀ ")
 		// fmt.Println("     ⠸⠀⠃⡄⠀⠀⠀⠀⠀⡸⢱⠀⠄⠀⠀⠀⠀ ")
